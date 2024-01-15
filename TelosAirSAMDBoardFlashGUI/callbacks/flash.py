@@ -12,7 +12,7 @@ def flash_button_callback(*args):
 
         def run(self):
             CONTEXT.root.event_generate(CONTEXT.EVENTS.BOARD_ACTION_BUTTON_DISABLE)
-            th = FlashThread(dev_path=CONTEXT.board_selected.port_path, updates_queue=self.updates_queue)
+            th = FlashThread(dev_path=CONTEXT.board_selected.port_path, dev_sn=CONTEXT.board_selected.serial_number, updates_queue=self.updates_queue)
             th.start()
             popup = ActionPopup(root=CONTEXT.root, starting_text="Beginning flashing process.", 
                                 msg_queue=self.updates_queue, window_title="TelosAirBoardManager - Board Flashing")
