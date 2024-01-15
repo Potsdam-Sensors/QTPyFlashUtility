@@ -167,8 +167,10 @@ elif OS_NAME == 'Windows':
 
 if OS_NAME == 'Darwin':
     CMD_TEMPLATE = f"\"{BOSSAC_BIN_PATH_MAC_OS}\" -i -d --port=%s -U -i --offset=0x2000 -w -v \"%s\" -R"
+    _format_term_cmd = lambda c: [c]
 elif OS_NAME == 'Windows':
     CMD_TEMPLATE = f"{BOSSAC_BIN_PATH_WINDOWS} -i -d --port=%s -U -i --offset=0x2000 -w -v %s -R"
+    _format_term_cmd = lambda c: ["cmd", "/c", c]
 
 def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
     """
@@ -181,11 +183,13 @@ def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
 
     * CMD_TEMPLATE (`str`): The execute command template, intended for `cmd` (Windows) or `Terminal` (OS X),
     that takes, in order, the `device_path` `str` parameter and the `full_file_path` `str` parameter.
+
+    * _format_term_cmd ('lambda`): Format a string representation of a command to run in `list` format for use with `subprocess.run`
     """
     logger.debug(f"flash_samd21({device_path}, {full_file_path}). CMD_TEMPLATE: {CMD_TEMPLATE}")
     cmd = CMD_TEMPLATE%(device_path, full_file_path)
     logger.debug(f"Running command {cmd}.")
-    res = subprocess.run([cmd], shell=True, capture_output=True)
+    res = subprocess.run(_format_term_cmd(cmd), shell=True, capture_output=True)
     logger.debug(f"Flashing process results: Return Code: {res.returncode}, Std. Err.: {res.stderr}.")
     return not res.returncode
 
