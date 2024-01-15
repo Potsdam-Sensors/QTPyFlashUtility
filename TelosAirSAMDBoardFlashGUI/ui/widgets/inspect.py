@@ -35,6 +35,11 @@ class BoardInfoFrame(Frame):
         self.board_path.update_text(board.port_path)
         self.board_sn.update_text(board.serial_number)
 
+    def clear(self):
+        self.board_name.update_text("")
+        self.board_path.update_text("")
+        self.board_sn.update_text("")
+
 class CheckBootloaderButton(Button):
     def __init__(self, master):
         super().__init__(master=master, text='Check Bootloader Version', command=event_generate_func_generator(CONTEXT.EVENTS.BOARD_BOOTLOADER_BUTTON))
@@ -46,7 +51,7 @@ class ActionButtonsFrame(Frame):
         self.flash_button = Button(self, text='Flash', command=event_generate_func_generator(CONTEXT.EVENTS.FLASH_BUTTON))
         # self.check_bootloader_button = CheckBootloaderButton(self)
 
-        self.flash_button.pack(side=LEFT)
+        self.flash_button.pack(fill=X)
         # self.check_bootloader_button.pack()
 
         CONTEXT.bind_root(CONTEXT.EVENTS.BOARD_ACTION_BUTTON_ENABLE, self.enable)
@@ -54,9 +59,11 @@ class ActionButtonsFrame(Frame):
         self.disable()
 
     def enable(self, *args):
-        for btn in [self.flash_button]:
-            btn: Button
-            btn.config(state='normal')
+        # print([CONTEXT.board_selected, CONTEXT.file_selected])
+        if not (None in [CONTEXT.board_selected, CONTEXT.file_selected]):
+            for btn in [self.flash_button]:
+                btn: Button
+                btn.config(state='normal')
 
     def disable(self, *args):
         for btn in [self.flash_button]:
@@ -74,8 +81,12 @@ class BoardInspectWidget(Frame):
         self.action_buttons.pack(side=BOTTOM, fill=X, padx=10)
 
         CONTEXT.bind_root(CONTEXT.EVENTS.BOARD_SELECTED_DRAW_INSPEC, self.update)
+        CONTEXT.bind_root(CONTEXT.EVENTS.CLEAR_INSPECT, self.clear)
 
     def update(self, *args):
         board = CONTEXT.board_selected
         if not board: return
         self.board_info.update(board)
+
+    def clear(self, *args):
+        self.board_info.clear()

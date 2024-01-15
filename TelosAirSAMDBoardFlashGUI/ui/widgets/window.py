@@ -1,6 +1,7 @@
 from tkinter import *
 from TelosAirSAMDBoardFlashGUI.context import CONTEXT
 from TelosAirSAMDBoardFlashGUI.ui.widgets.inspect import BoardInspectWidget
+from TelosAirSAMDBoardFlashGUI.ui.widgets.device_code import DeviceCodeWidget
 from pathlib import Path
 from PIL import Image, ImageTk
 import tkinter.messagebox
@@ -38,7 +39,7 @@ class RefreshButtonWidget(Frame):
 
 class DeviceList(Listbox):
     def __init__(self, master):
-        super().__init__(master=master, width=30)
+        super().__init__(master=master, width=30, height=3, exportselection=0)
         self.board_list = []
         self.redraws = 0
         CONTEXT.bind_root(CONTEXT.EVENTS.REDRAW_LISTBOX, self.redraw)
@@ -72,36 +73,44 @@ class DeviceList(Listbox):
         self.focus()
 
 
-class DeviceListWidget(Frame):
+class DeviceListWidget(LabelFrame):
     def __init__(self, master):
         super().__init__(master=master)
 
-        top_frame = Frame(master=self)
-        title_label = Label(master=top_frame, text='Devices')
-        refresh_button = RefreshButtonWidget(top_frame)
-        help_icon = ImageTk.PhotoImage(Image.open(f"{STATIC_FOLDER_PATH}/info.png").resize((15,15)))
-        help = Button(master=top_frame, borderwidth=0, border=0, highlightthickness=0)
-        help.config(image=help_icon)
-        help.img = help_icon
+        label_widg = Frame(master=self)
+        title_label = Label(master=label_widg, text='Devices\t')
+        refresh_button = RefreshButtonWidget(label_widg)
+        # help_icon = ImageTk.PhotoImage(Image.open(f"{STATIC_FOLDER_PATH}/info.png").resize((15,15)))
+        # help = Button(master=label_widg, borderwidth=0, border=0, highlightthickness=0)
+        # help.config(image=help_icon)
+        # help.img = help_icon
 
         title_label.grid(row=0, column=0)
         refresh_button.grid(row=0, column=1)
-        help.grid(row=0, column=2, sticky='ns')
+        # help.grid(row=0, column=2, sticky='ns')
 
         list_box = DeviceList(self)
-        top_frame.pack()
+        self.config(labelwidget=label_widg)
         
-        list_box.pack()
+        list_box.pack(fill='both')
         list_box.focus()
 
 class MainWindow(Frame):
     def __init__(self, root: Tk):
         super().__init__(master=root)
 
-        device_list_widget = DeviceListWidget(self)
-        device_list_widget.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
+        left_widget = Frame(master=self)
+        right_widget = Frame(master=self)
 
-        board_inspect_widget = BoardInspectWidget(self)
-        board_inspect_widget.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
+        device_list_widget = DeviceListWidget(left_widget)
+        device_list_widget.pack(side=TOP, fill='both')
+        board_code_widget = DeviceCodeWidget(left_widget)
+        board_code_widget.pack(fill='both')
+
+        board_inspect_widget = BoardInspectWidget(right_widget)
+        board_inspect_widget.grid(row=0, column=0, sticky='ew')
+        
+        left_widget.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
+        right_widget.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
 
         

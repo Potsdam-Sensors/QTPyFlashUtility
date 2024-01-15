@@ -195,12 +195,10 @@ def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
 
 #TODO: Improve error catching and reporting
 class FlashThread(Thread):
-    def __init__(self, dev_path: str, dev_sn: str, updates_queue: Queue = None):
+    def __init__(self, board: Board, filepath: str,  updates_queue: Queue = None):
         super().__init__(daemon=True)
-        self.dev = dev_path
-        self.dev_sn = dev_sn
-        if system() in ["Darwin", "Linux"]:
-            self.dev = f"/dev/{self.dev}"
+        self.dev = board
+        self.filepath = filepath
 
         self.result = None
 
@@ -220,17 +218,21 @@ class FlashThread(Thread):
         return
 
     def run(self):
+        dev_path = self.dev.port_path
+        if OS_NAME != "Windows":
+            dev_path = "/dev/"+dev_path
+        logger.debug(f"Thread has dev_path: {dev_path}, file: {self.filepath}")
         
         self.updates_queue.put(('Putting board in bootloader mode...', True, False))
         try:
-            res = soft_request_bootloader_mode(self.dev)
+            res = soft_request_bootloader_mode(dev_path)
         except Exception as e:
-            logger.exception(f"Exception during soft_request_bootloader_mode({self.dev}): {e}")
+            logger.exception(f"Exception during soft_request_bootloader_mode({dev_path}): {e}")
             self.updates_queue.put(("Failed to put the board in bootloader mode. (Exception).", False, False))
             return
         
         if not res:
-            logger.debug(f"Nonzero return code from soft_request_bootloader_mode({self.dev}), cancelling.")
+            logger.debug(f"Nonzero return code from soft_request_bootloader_mode({dev_path}), cancelling.")
             self.updates_queue.put(("Something went wrong. Failed to put board in bootloader mode.", False, False))
             return
         
@@ -238,22 +240,24 @@ class FlashThread(Thread):
         # So we must try to locate it.
         connected_boards_paths = get_connected_boards(True)
         logger.debug(f"After bootloader mode, connected boards at: {connected_boards_paths}")
-        if self.dev not in connected_boards_paths:
-            logger.info(f"Port path must have changed (Expecting {self.dev}). Searching for new.")
+        if dev_path not in connected_boards_paths:
+            logger.info(f"Port path must have changed (Expecting {dev_path}). Searching for new.")
 
-            new_board = find_connected_board(board_serial=self.dev_sn)
+            new_board = find_connected_board(board_serial=self.dev.serial_number)
             if not new_board:
-                logger.error(f"Failed to locate new board connection for serial {self.dev_sn}")
+                logger.error(f"Failed to locate new board connection for serial {self.dev.serial_number}")
                 self.updates_queue.put(('Failed to locate board after putting in bootloader mode. Please try again.', False, False))
                 return
             else:
                 logger.info(f"New path detected for board is {new_board.port_path}")
-                self.dev = new_board.port_path
-        
+                self.dev = new_board
+                dev_path = self.dev.port_path
+                if OS_NAME != "Windows":
+                    dev_path = "/dev/"+dev_path
 
         self.updates_queue.put(('Flashing Board...', True, False))
         try:
-            res = flash_samd21_device(self.dev, BIN_PATH)
+            res = flash_samd21_device(dev_path, self.filepath)
         except Exception as e:
             logger.exception(f"Flashing failed with exception: {e}")
             self.updates_queue.put(('Flashing failed. (Exception)', False, False))

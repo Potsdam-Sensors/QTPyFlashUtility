@@ -1,7 +1,9 @@
 from tkinter import *
 from typing import Callable
 from TelosAirSAMDBoardFlashGUI.models.board import Board
+import logging
 
+logger = logging.getLogger("TelosAir")
 class Context(object):
     root: Tk = None
 
@@ -11,6 +13,8 @@ class Context(object):
 
     board_list: 'list[Board]' = []
     board_selected: Board = None
+
+    file_selected: int = None
 
     class EVENTS(object):
         REFRESH = "<<refresh-devices-button>>"
@@ -26,6 +30,11 @@ class Context(object):
 
         FLASH_BUTTON = "<<flash>>"
 
+        BOARD_SELECT = "<<board-selected>>"
+        FILE_SELECT = "<<file-selected>>"
+
+        CLEAR_INSPECT = "<<clear-inspect>>"
+
     def bind_root(self, signal: str, func: Callable):
         if self.root:
             self.root.bind(signal, func)
@@ -37,7 +46,7 @@ class Context(object):
         self.client_name = client_name
         self.database_url = db_url
         for item in self._to_bind:
-            print(f"Binding Pre-Bound: {item}")
+            logger.debug(f"Binding Pre-Bound: {item}")
             self.root.bind(*item)
 
 CONTEXT = Context()
