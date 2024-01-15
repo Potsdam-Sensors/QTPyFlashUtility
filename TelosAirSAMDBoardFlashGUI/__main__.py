@@ -2,7 +2,18 @@ from TelosAirSAMDBoardFlashGUI.ui.app import TelosAirApp
 from TelosAirSAMDBoardFlashGUI.context import CONTEXT
 from TelosAirSAMDBoardFlashGUI.callbacks.refresh_button import refresh_button_callback
 
+import logging
+logger = logging.getLogger("TelosAir")
+formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
 def main():
+    logger.info("Starting.")
     app = TelosAirApp()
     #TODO: Use ini file or something
     refresh_button_callback()

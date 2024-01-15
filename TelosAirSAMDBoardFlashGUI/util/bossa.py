@@ -1,9 +1,6 @@
 from TelosAirSAMDBoardFlashGUI.models.board import Board
 from pathlib import Path
-from threading import Thread, Event
-from os.path import exists
-from os import listdir, remove
-import psutil
+from threading import Thread
 from pathlib import Path
 from typing import Union, Tuple
 from serial import Serial, SerialTimeoutException
@@ -12,88 +9,149 @@ from serial.tools.list_ports import comports as list_comports
 import os
 from time import time, sleep
 from platform import system
+import subprocess
 
+prepend_err_msg = lambda msg, err: Exception(msg+err.args[0], *err.args[1:])
 
+import logging
+logger = logging.getLogger("Flash")
+formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 OS_NAME = system()
 
-if OS_NAME == "Darwin":
-    BOSSAC_BIN_PATH = f"{Path(__file__).parent}/bossac"
-elif OS_NAME == "Windows":
-    BOSSAC_BIN_PATH = f"{Path(__file__).parent}/bossac.exe"
+BOSSAC_BIN_PATH_MAC_OS = f"{Path(__file__).parent}/bossac"
+BOSSAC_BIN_PATH_WINDOWS = f"{Path(__file__).parent}/bossac.exe"
 BIN_PATH = f"{Path(__file__).parent}/bin/flash.ino.bin"
 
+""" 
+Valid VID:PID combos for QT Py. For some reason, when the QT Py is put in bootloader mode,
+the PID changes to match the second combo here.
+"""
+VALID_VID_PID = [(0x80CB,0x239A), (0x00CB,0x239A)]
 
-
-def get_connected_boards(sn: str = None):
-    ret = []
-    VALID_VID_PID = [(0x80CB,0x239A), (0x00CB,0x239A)]
+def find_connected_board(board_serial: str) -> Union[Board, None]:
+    """
+    Check the computers USB connections to QT Py's and try to match the given
+    `board_serial` to it.
+    
+    Return a new `Board` if found, `None` otherwise
+    """
     for port in list_comports():
+        # First match PID:VID known for QT Py
         if (port.pid, port.vid) in VALID_VID_PID:
-            board = Board(
+            # Then match serial
+            if board_serial == port.serial_number:
+                return Board(
                     board_name=port.description,
                     pid=port.pid,
                     sn=port.serial_number,
                     vid=port.vid,
                     port_address=port.name
                 )
-            if sn:
-                if sn == port.serial_number:
-                    return board
+
+def get_connected_boards(port_path_only: bool = False) -> Union['list[Board]', 'list[str]']:
+    """
+    Check the computer's USB connections for QT Py with known PID:VID and return
+    new `Board` objects for each (if any).
+
+    If `port_path_only` is set to `True` [defaults to `False`], instead return a list of 
+    port path `str`.
+    """
+    ret = []
+    for port in list_comports():
+        if (port.pid, port.vid) in VALID_VID_PID:
+            if port_path_only:
+                ret.append(port.device) # .device is its "path"
             else:
-                ret.append(board)
-    if sn:
-        return None
+                ret.append(Board(
+                        board_name=port.description,
+                        pid=port.pid,
+                        sn=port.serial_number,
+                        vid=port.vid,
+                        port_address=port.name
+                    ))
     return ret
 
-def _do_soft_request_bootloader_mode(path: str) -> Union[str, None]:
+def _do_soft_request_bootloader_mode(path: str) -> None:
+    """
+    Put the QT Py into bootloader mode by opening a `Serial` port with a `baudrate` of `1200`.
+    This tells the SAMD21 chip to go into bootloader mode.
+    
+    Does not catch any exceptions.
+    """
     SPECIAL_BAUDRATE = 1200
     try:
         s = Serial(path, baudrate=SPECIAL_BAUDRATE)
         sleep(1)
+    finally:
         s.close()
-    except Exception as e:
-        err = (f"Error putting device in bootloader mode: {e}")
-        return err
-    return None
 
 if OS_NAME in ['Darwin', 'Linux']:
-    def _verify_bootloader_mode_set(timeout = 10) -> bool:
-        timeout_at = time() + timeout
-        while time() < timeout_at:
-            if "QTPY_BOOT" in os.listdir("/Volumes/"):
-                return True
-            sleep(.2)
-        return False
+    __get_drives = lambda: os.listdir("/Volumes/")
 elif OS_NAME in ['Windows']:
     import win32api
     __get_drives = lambda: [win32api.GetVolumeInformation(d)[0] for d in win32api.GetLogicalDriveStrings().split("\000")[:-1]]
-    def _verify_bootloader_mode_set(timeout = 10) -> bool:
-        timeout_at = time() + timeout
-        while time() < timeout_at:
-            try:
-                if "QTPY_BOOT" in __get_drives():
-                    return True
-            except Exception as e:
-                print(e)
-            sleep(.2)
-        return False
-else:
-    raise ("OS")
+    
+def _verify_bootloader_mode_set(timeout: float = 5) -> bool:
+    """
+    Check to see if the QT Py is in bootloader by looking for an external drive called `"QTPY_BOOT"`.
+
+    Returns success as `bool`.
+
+    This currently doesn't check bootloader version nor verify correct SN, although it probably could.
+
+    Exceptions not caught.
+
+    Currently requires implementation of some funcs for OS tolerance:
+
+    * `__get_drives`: Returns names of all external drives connected to computer.
+    
+    """
+    QTPY_VOLUME_NAME = "QTPY_BOOT"
+    timeout_at = time() + timeout
+    external_drives = __get_drives()
+    logger.debug(f"Mounted Drives: {external_drives}")
+    if QTPY_VOLUME_NAME in external_drives:
+        return True
+
+    while time() < timeout_at:
+        external_drives = __get_drives()
+        logger.debug(f"\tMounted Drives: {external_drives}")
+        if QTPY_VOLUME_NAME in external_drives:
+            logger.debug(f"Found {QTPY_VOLUME_NAME}.")
+            return True
+        sleep(.5) # Let's not hog the processor just for listing drives
+    
+    return False
 
 
-def soft_request_bootloader_mode(path: str) -> Union[str, None]:
-    if not _verify_bootloader_mode_set(timeout=.1):
-        print("Attempting to put device in bootloader mode.")
-        res = _do_soft_request_bootloader_mode(path)
-        if res:
-            return f"Failed to request a soft reboot due to: {res}"
-    print("Waiting for device mount...")
+def soft_request_bootloader_mode(device_path: str) -> bool:
+    """
+    Perform a software request to the SAMD21 chip to enter bootloader mode.
+
+    Will rethrow exceptions caught.
+
+    Returns success as `bool`.
+    """
+
+    try:
+        if not _verify_bootloader_mode_set(timeout=.1):
+            logger.info("Attempting to put device in bootloader mode.")
+            _do_soft_request_bootloader_mode(device_path)
+    except Exception as e:
+        raise(prepend_err_msg("<Verifying Bootloader Mode Set>: ", e))
+    
+    logger.info("Waiting for device mount.")
     if not _verify_bootloader_mode_set():
-        err = ("Device drive not mounted - looks like bootloader mode has not been set.")
-        print(err)
-        return err
-    return None
+        logger.error("Device drive not mounted - looks like bootloader mode has not been set.")
+        return False
+    return True
 
 if OS_NAME == 'Darwin':
     def flash_samd21_device(full_device_path: str, full_file_path: str) -> bool:
@@ -107,6 +165,29 @@ elif OS_NAME == 'Windows':
         res = subprocess.run(['cmd', '/c', CMD], shell=True, capture_output=True)
         return not res.returncode
 
+if OS_NAME == 'Darwin':
+    CMD_TEMPLATE = f"\"{BOSSAC_BIN_PATH_MAC_OS}\" -i -d --port=%s -U -i --offset=0x2000 -w -v \"%s\" -R"
+elif OS_NAME == 'Windows':
+    CMD_TEMPLATE = f"{BOSSAC_BIN_PATH_WINDOWS} -i -d --port=%s -U -i --offset=0x2000 -w -v %s -R"
+
+def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
+    """
+    Flash the board at the given `device_path` using the BOSSA tool, `bossac`. 
+    The file flashed will be the one given by `full_file_path`.
+
+    Returns success (measured by a zero `returncode`) as a `bool`.
+
+    Depends on implementations per OS of:
+
+    * CMD_TEMPLATE (`str`): The execute command template, intended for `cmd` (Windows) or `Terminal` (OS X),
+    that takes, in order, the `device_path` `str` parameter and the `full_file_path` `str` parameter.
+    """
+    logger.debug(f"flash_samd21({device_path}, {full_file_path}). CMD_TEMPLATE: {CMD_TEMPLATE}")
+    cmd = CMD_TEMPLATE%(device_path, full_file_path)
+    logger.debug(f"Running command {cmd}.")
+    res = subprocess.run([cmd], shell=True, capture_output=True)
+    logger.debug(f"Flashing process results: Return Code: {res.returncode}, Std. Err.: {res.stderr}.")
+    return not res.returncode
 
 #TODO: Improve error catching and reporting
 class FlashThread(Thread):
@@ -139,33 +220,43 @@ class FlashThread(Thread):
         self.updates_queue.put(('Putting board in bootloader mode...', True, False))
         try:
             res = soft_request_bootloader_mode(self.dev)
-        except Exception:
+        except Exception as e:
+            logger.exception(f"Exception during soft_request_bootloader_mode({self.dev}): {e}")
             self.updates_queue.put(("Failed to put the board in bootloader mode. (Exception).", False, False))
             return
-        if res:
-            self.updates_queue.put((res, False, False))
+        
+        if not res:
+            logger.debug(f"Nonzero return code from soft_request_bootloader_mode({self.dev}), cancelling.")
+            self.updates_queue.put(("Something went wrong. Failed to put board in bootloader mode.", False, False))
             return
-        _get_port_paths = lambda: [x.device for x in list_comports()]
-        if self.dev not in _get_port_paths():
-            print("Port path must have changed. Searching for new.")
+        
+        # Sometimes, especially on Windows/Linux, if the board disconnects, it might change connection path.
+        # So we must try to locate it.
+        connected_boards_paths = get_connected_boards(True)
+        logger.debug(f"After bootloader mode, connected boards at: {connected_boards_paths}")
+        if self.dev not in connected_boards_paths:
+            logger.info(f"Port path must have changed (Expecting {self.dev}). Searching for new.")
 
-            new_board = get_connected_boards(self.dev_sn)
-
+            new_board = find_connected_board(board_serial=self.dev_sn)
             if not new_board:
-                print("Failed to connect to new path.")
+                logger.error(f"Failed to locate new board connection for serial {self.dev_sn}")
+                self.updates_queue.put(('Failed to locate board after putting in bootloader mode. Please try again.', False, False))
+                return
             else:
-                print(f"New path is {new_board.port_path}")
+                logger.info(f"New path detected for board is {new_board.port_path}")
                 self.dev = new_board.port_path
         
 
         self.updates_queue.put(('Flashing Board...', True, False))
         try:
             res = flash_samd21_device(self.dev, BIN_PATH)
-        except Exception:
+        except Exception as e:
+            logger.exception(f"Flashing failed with exception: {e}")
             self.updates_queue.put(('Flashing failed. (Exception)', False, False))
             return
         if not res:
-            self.updates_queue.put(('Flashing failed.', False, False))
+            logger.error("Flashing failed due to failure.")
+            self.updates_queue.put(('Something went wrong. Flashing failed.', False, False))
             return
 
         self.updates_queue.put(('Board flash successful.', True, True))
