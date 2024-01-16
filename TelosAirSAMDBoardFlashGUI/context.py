@@ -34,6 +34,7 @@ class Context(object):
         FILE_SELECT = "<<file-selected>>"
 
         CLEAR_INSPECT = "<<clear-inspect>>"
+        CLEAR_DEVICES = "<<clear-devices>>"
 
     def bind_root(self, signal: str, func: Callable):
         if self.root:

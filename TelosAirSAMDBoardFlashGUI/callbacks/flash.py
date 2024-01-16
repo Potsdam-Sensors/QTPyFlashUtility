@@ -36,6 +36,11 @@ def flash_button_callback(*args):
             
             th.join()
             
+            CONTEXT.board_list = []
+            CONTEXT.root.event_generate(CONTEXT.EVENTS.CLEAR_INSPECT)
+            CONTEXT.root.event_generate(CONTEXT.EVENTS.CLEAR_DEVICES)
+            CONTEXT.root.update()
+            sleep(2)
             CONTEXT.root.event_generate(CONTEXT.EVENTS.REFRESH)
             CONTEXT.root.event_generate(CONTEXT.EVENTS.CLEAR_INSPECT)
             CONTEXT.root.event_generate(CONTEXT.EVENTS.BOARD_ACTION_BUTTON_ENABLE)

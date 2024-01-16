@@ -44,6 +44,7 @@ class DeviceList(Listbox):
         self.redraws = 0
         CONTEXT.bind_root(CONTEXT.EVENTS.REDRAW_LISTBOX, self.redraw)
         self.bind('<<ListboxSelect>>', self.cursor_select_cb)
+        CONTEXT.bind_root(CONTEXT.EVENTS.CLEAR_DEVICES, self.clear)
 
     def cursor_select_cb(self, *args):
         if len(self.curselection()) == 0:
@@ -57,7 +58,11 @@ class DeviceList(Listbox):
         CONTEXT.root.event_generate(CONTEXT.EVENTS.BOARD_SELECTED_DRAW_INSPEC)
         CONTEXT.root.event_generate(CONTEXT.EVENTS.BOARD_ACTION_BUTTON_ENABLE)
 
-    
+    def clear(self, *args):
+        self.redraws = 0
+        self.redraw()
+        self.redraws = 0
+
     def redraw(self, *args):
         self.redraws += 1
         if self.board_list:
