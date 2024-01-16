@@ -10,7 +10,7 @@ from TelosAirSAMDBoardFlashGUI.callbacks.flash import *
 class TelosAirApp(Tk):
     def __init__(self):
         super().__init__()
-        self.title("TelosAir Board Manager")
+        self.title("TelosAir QT-Py FLash Utility")
 
         mw = MainWindow(self)
         mw.pack()

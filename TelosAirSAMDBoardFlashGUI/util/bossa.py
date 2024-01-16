@@ -36,7 +36,9 @@ else:
     APP_PATH = os.path.dirname(os.path.abspath(__file__))
 
 BOSSAC_BIN_PATH_MAC_OS = f"{APP_PATH}/bossac_binaries/bossac"
-BOSSAC_BIN_PATH_WINDOWS = f"{APP_PATH}/bossac_binaries/bossac.exe"
+BOSSAC_BIN_PATH_WINDOWS = os.path.join(APP_PATH, "bossac_binaries", "bossac.exe")
+# BOSSAC_BIN_PATH_WINDOWS = os.path.join("/Program Files (x86)/TelosAir/TelosAir QTPy Flash Utility/App/bossac_binaries/bossac.exe")
+# BOSSAC_BIN_PATH_WINDOWS = "C:\\Program Files (x86)\\TelosAir\\TelosAir QTPy Flash Utility\\App\\bossac_binaries\\bossac.exe"
 
 """ 
 Valid VID:PID combos for QT Py. For some reason, when the QT Py is put in bootloader mode,
@@ -163,23 +165,12 @@ def soft_request_bootloader_mode(device_path: str) -> bool:
     return True
 
 if OS_NAME == 'Darwin':
-    def flash_samd21_device(full_device_path: str, full_file_path: str) -> bool:
-        CMD_TEMPLATE = "\"%s\" -i -d --port=%s -U -i --offset=0x2000 -w -v \"%s\" -R"
-        return not os.system(CMD_TEMPLATE%(BOSSAC_BIN_PATH, full_device_path, full_file_path))
+    # CMD_TEMPLATE = f"\"{BOSSAC_BIN_PATH_MAC_OS}\" -i -d --port=%s -U -i --offset=0x2000 -w -v \"%s\" -R"
+    _format_term_cmd = lambda port, filepath: [f"\"{BOSSAC_BIN_PATH_MAC_OS}\" -i -d --port={port} -U -i --offset=0x2000 -w -v \"{filepath}\" -R"]
 elif OS_NAME == 'Windows':
-    import subprocess
-    def flash_samd21_device(full_device_path: str, full_file_path: str) -> bool:
-        CMD_TEMPLATE = "%s -i -d --port=%s -U -i --offset=0x2000 -w -v %s -R"
-        CMD = (CMD_TEMPLATE%("TelosAirSAMDBoardFlashGUI\\util\\bossac.exe", full_device_path, full_file_path))
-        res = subprocess.run(['cmd', '/c', CMD], shell=True, capture_output=True)
-        return not res.returncode
-
-if OS_NAME == 'Darwin':
-    CMD_TEMPLATE = f"\"{BOSSAC_BIN_PATH_MAC_OS}\" -i -d --port=%s -U -i --offset=0x2000 -w -v \"%s\" -R"
-    _format_term_cmd = lambda c: [c]
-elif OS_NAME == 'Windows':
-    CMD_TEMPLATE = f"{BOSSAC_BIN_PATH_WINDOWS} -i -d --port=%s -U -i --offset=0x2000 -w -v %s -R"
-    _format_term_cmd = lambda c: ["cmd", "/c", c]
+    # CMD_TEMPLATE = f"{BOSSAC_BIN_PATH_WINDOWS} -i -d --port=%s -U -i --offset=0x2000 -w -v %s -R"
+    _format_term_cmd = lambda port, filepath: f'"{BOSSAC_BIN_PATH_WINDOWS}" -i -d --port={port} -U -i --offset=0x2000 -w -v "{filepath}" -R'
+    # _format_term_cmd = lambda c: [c]
 
 def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
     """
@@ -195,10 +186,10 @@ def flash_samd21_device(device_path: str, full_file_path: str) -> bool:
 
     * _format_term_cmd ('lambda`): Format a string representation of a command to run in `list` format for use with `subprocess.run`
     """
-    logger.debug(f"flash_samd21({device_path}, {full_file_path}). CMD_TEMPLATE: {CMD_TEMPLATE}")
-    cmd = CMD_TEMPLATE%(device_path, full_file_path)
+    logger.debug(f"flash_samd21({device_path}, {full_file_path}).")
+    cmd = _format_term_cmd(device_path, full_file_path)
     logger.debug(f"Running command {cmd}.")
-    res = subprocess.run(_format_term_cmd(cmd), shell=True, capture_output=True)
+    res = subprocess.run(cmd, capture_output=True, shell=True)
     logger.debug(f"Flashing process results: Return Code: {res.returncode}, Std. Err.: {res.stderr}.")
     return not res.returncode
 

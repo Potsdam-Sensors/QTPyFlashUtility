@@ -39,7 +39,7 @@ class RefreshButtonWidget(Frame):
 
 class DeviceList(Listbox):
     def __init__(self, master):
-        super().__init__(master=master, width=30, height=3, exportselection=0)
+        super().__init__(master=master, width=50, height=3, exportselection=0)
         self.board_list = []
         self.redraws = 0
         CONTEXT.bind_root(CONTEXT.EVENTS.REDRAW_LISTBOX, self.redraw)
