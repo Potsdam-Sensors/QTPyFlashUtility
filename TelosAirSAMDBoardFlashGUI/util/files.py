@@ -36,10 +36,8 @@ DEVICE_FILE_NICKNAMES = [
 ]
 
 DEVICE_FILE_PATHS = [
-    None,
-    None,
-    os.path.join(BIN_FOLDER_PATH, "test.ino.bin")
-    # "\"" + str(pathlib.WindowsPath(r"C:\Program Files (x86)\TelosAir\TelosAir QTPy Flash Utility\App\device_binaries\test.ino.bin").resolve()) + "\""
-    # '"C:\Program^ Files^ (x86)\TelosAir\TelosAir^ QTPy^ Flash^ Utility\App\device_binaries\test.ino.bin"'
-    # 'C:/Program Files (x86)/TelosAir/TelosAir QTPy Flash Utility/App/device_binaries/test.ino.bin'
+    os.path.join(BIN_FOLDER_PATH, "PlantowerTestSketch.ino.bin"),
+    os.path.join(BIN_FOLDER_PATH, "AlphaSenseTestSketch.ino.bin"),
+    os.path.join(BIN_FOLDER_PATH, "DoNothingTestSketch.ino.bin")
+    # os.path.join(BIN_FOLDER_PATH, "test.ino.bin")
 ]
