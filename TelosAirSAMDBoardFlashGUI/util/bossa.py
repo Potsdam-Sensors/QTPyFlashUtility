@@ -12,7 +12,7 @@ from time import time, sleep
 from platform import system
 import subprocess
 
-prepend_err_msg = lambda msg, err: Exception(msg+err.args[0], *err.args[1:])
+prepend_err_msg = lambda msg, err: Exception(str(msg)+str(err.args[0]), *err.args[1:])
 
 import logging
 logger = logging.getLogger("Flash")
@@ -109,7 +109,27 @@ if OS_NAME in ['Darwin', 'Linux']:
     __get_drives = lambda: os.listdir("/Volumes/")
 elif OS_NAME in ['Windows']:
     import win32api
-    __get_drives = lambda: [win32api.GetVolumeInformation(d)[0] for d in win32api.GetLogicalDriveStrings().split("\000")[:-1]]
+    # __get_drives = lambda: [win32api.GetVolumeInformation(d)[0] for d in win32api.GetLogicalDriveStrings().split("\000")[:-1]]
+    def __get_drives():
+        ret = []
+        for d in win32api.GetLogicalDriveStrings().split("\000")[:-1]:
+            logger.debug(f"\tDrive {d}:")
+            try:
+                vol_info = win32api.GetVolumeInformation(d)
+            except Exception as e:
+                logger.exception(f"Exception getting vol. info from drive {d}: {e}")
+                continue
+            logger.debug(f"\t\tInfo: {vol_info}")
+            try:
+                drive_name = vol_info[0]
+            except Exception as e:
+                logger.exception(f"Exception accessing vol. info, {vol_info}, from drive {d}: {e}")
+                continue
+            logger.debug(f"\t\tName: {drive_name}")
+            ret.append(drive_name)
+        return ret
+
+                
     
 def _verify_bootloader_mode_set(timeout: float = 5) -> bool:
     """

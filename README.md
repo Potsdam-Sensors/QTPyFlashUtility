@@ -1,4 +1,4 @@
-# QTPyFlashUtility - v0.1.1
+# QTPyFlashUtility - v0.1.2
 
 This repo contains code for flashing the QT Py SAMD21 Board with a precompiled code. 
 
@@ -8,6 +8,11 @@ This will serve for now as a means for SMC/SNU to flash the QT Py with code to r
 
 
 ## Changelog
+
+#### v0.1.2
+Modified:
+* Fixed issue with error re-raising where sometimes an arg was int trying to concat to str
+* Dealt with case where calling for system volume info on windows throws exception if the drive isn't ready yet
 
 #### v0.1.1
 
