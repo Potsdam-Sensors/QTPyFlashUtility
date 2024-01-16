@@ -7,6 +7,7 @@ from serial import Serial, SerialTimeoutException
 from queue import Queue
 from serial.tools.list_ports import comports as list_comports
 import os
+import sys
 from time import time, sleep
 from platform import system
 import subprocess
@@ -25,9 +26,17 @@ logger.setLevel(logging.DEBUG)
 
 OS_NAME = system()
 
-BOSSAC_BIN_PATH_MAC_OS = f"{Path(__file__).parent}/bossac"
-BOSSAC_BIN_PATH_WINDOWS = f"{Path(__file__).parent}/bossac.exe"
-BIN_PATH = f"{Path(__file__).parent}/bin/flash.ino.bin"
+# Determine if running as a bundled application or in a normal Python environment
+if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle, the PyInstaller bootloader
+    # extends the sys module by a flag frozen=True and sets the app 
+    # path into variable _MEIPASS.
+    APP_PATH = sys._MEIPASS
+else:
+    APP_PATH = os.path.dirname(os.path.abspath(__file__))
+
+BOSSAC_BIN_PATH_MAC_OS = f"{APP_PATH}/bossac_binaries/bossac"
+BOSSAC_BIN_PATH_WINDOWS = f"{APP_PATH}/bossac_binaries/bossac.exe"
 
 """ 
 Valid VID:PID combos for QT Py. For some reason, when the QT Py is put in bootloader mode,
