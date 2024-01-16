@@ -97,11 +97,13 @@ def _do_soft_request_bootloader_mode(path: str) -> None:
     Does not catch any exceptions.
     """
     SPECIAL_BAUDRATE = 1200
+    s = None
     try:
         s = Serial(path, baudrate=SPECIAL_BAUDRATE)
         sleep(1)
     finally:
-        s.close()
+        if s:
+            s.close()
 
 if OS_NAME in ['Darwin', 'Linux']:
     __get_drives = lambda: os.listdir("/Volumes/")
