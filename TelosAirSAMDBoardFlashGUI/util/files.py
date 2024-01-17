@@ -32,12 +32,12 @@ BIN_FOLDER_PATH = os.path.join(APP_PATH, 'device_binaries')
 DEVICE_FILE_NICKNAMES = [
         "QT Py - Plantower PMS5003 Read",
         "QT Py - AlphaSense OPC-R2 Read",
-        "QT Py - Test Flashing"
+        # "QT Py - Test Flashing"
 ]
 
 DEVICE_FILE_PATHS = [
     os.path.join(BIN_FOLDER_PATH, "PlantowerTestSketch.ino.bin"),
     os.path.join(BIN_FOLDER_PATH, "AlphaSenseTestSketch.ino.bin"),
-    os.path.join(BIN_FOLDER_PATH, "DoNothingTestSketch.ino.bin")
+    # os.path.join(BIN_FOLDER_PATH, "DoNothingTestSketch.ino.bin")
     # os.path.join(BIN_FOLDER_PATH, "test.ino.bin")
 ]
