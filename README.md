@@ -1,4 +1,4 @@
-# QTPyFlashUtility - v0.1.2
+# QTPyFlashUtility - v1.0.0
 
 This repo contains code for flashing the QT Py SAMD21 Board with a precompiled code. 
 
