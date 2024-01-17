@@ -7,30 +7,39 @@ This will serve for now as a means for SMC/SNU to flash the QT Py with code to r
 ![Screenshot of App](pics/screenshot.png)
 
 
-## Changelog
-
-#### v0.1.2
-Modified:
-* Fixed issue with error re-raising where sometimes an arg was int trying to concat to str
-* Dealt with case where calling for system volume info on windows throws exception if the drive isn't ready yet
-
-#### v0.1.1
-
-Modified:
-* Fixed window title from "FLash" to "Flash"
-* Changed Test sketch to do something
-
-Added:
-* Added PT and AlphaSense Test Sketches
-
 ## To Build
 
 ### Environment Prep
-Install all of the dependencies using `pip`. I will later list these, but among the ones not used in the repo is `pyinstaller`.
 
-### Pyinstaller
+#### All OSes
 
-First you will need to "compile" the code with Pyinstaller. From a PowerShell in the project directory, do the following command:
+* Install all of the dependencies using `pip3`.
+    * For Windows, install all the dependencies in `requirements_windows.txt`.
+    * For Mac OS, install all the dependencies in `requirements_mac.txt`.
+
+```bash
+pip3 install requirements_windows.txt
+```
+* Either add the folder where `pyinstaller`'s binary is located to your `PATH`, or copy it for use in the terminal later. Depending on your
+installation, this location may already be on your `PATH`. You can check by just trying to call it by name:
+
+```bash
+pyinstaller
+```
+
+#### Windows
+* Install `InstallForge`. This is an app for creating installable packages easily.
+```
+https://installforge.net/downloads/?i=IFSetup 
+```
+
+#### Mac OS
+_Nothing yet as it is not needed._
+
+
+### Compile Program with Pyinstaller
+
+First you will need to "compile" the code with Pyinstaller. From a PowerShell/Terminal in the project directory, do the following command:
 
 ``` powershell
 pyinstaller .\app.spec
@@ -38,33 +47,49 @@ pyinstaller .\app.spec
 
 This should create two folders, `build` and `dist` in the current directory. 
 
-`dist/App/TelosAirQTPyFlashUtil.exe` is the executable that will run the program.
+`dist/App/TelosAirQTPyFlashUtil.exe` is the executable that will run the program. You may want to now run that to see if it works as expected
+after pyinstaller has done its thing. A lot of resources need to be compiled and linked so this is where you would find out if there was an issue.
+
+If you are satisfied, move onto the next step for Windows.
 
 _Note: I have not tested Pyinstaller with Mac OS yet since it is not needed for deliverables._
 
-### InstallForge (Windows)
+### Package Compiled Program for Installation on a Clean OS
 
-You will need to install InstallForge, an app for making installers for Windows.
+#### InstallForge (Windows)
 
-Follow this link to download the installer for InstallForge:
+* Open InstallForge after you've installed it.
+* Open the file `install_forge_project.ifp` by clicking the `open` button on the top.
+* Click `General` and verify that the version number is good.
+* Click `Build` on the __left side of the screen__ to open the build menu. Then make sure that the `Setup File` has a full path in it.
+If it doesn't, press the `...` button to select somewhere tangible to put it. Otherwise it will just build it and put it somewhere wacky.
+* Click `Remove All` at the top of the screen to remove the files from whoever last used this and commited it.
+* Click `Add Folder` and add the `dist/App` folder created by Pyinstaller. This folder contains everything needed to run the app.
+* Click `Build` on the __top of the screen__ to actually run the build.
+    * _Note: If you have any issues during building, sometimes closing InstallForge and reopening it will magically fix it. Just make sure you save or reapply your changes before rebuilding._
+* [Optional] Uninstall TelosAirQTPyFlashUitl from your computer first to make sure you get a clean install.
+* Run the `.exe` output by InstallForge, usually `TelosAirQTPyFlashUtilInstaller.exe` and follow the installer.
+* Open `TelosAirQTPyFlashUtil` and verify it still works as expected.
 
-```
-https://installforge.net/downloads/?i=IFSetup 
-```
-
-Use it to open the file `install_forge_project.ifp`. (Later I will explain how to do that)
-
-Then, if you've made changes or there's an issue with it trying to look for _my_ computers files (I will check this later),
-you can hit the `Remove All` button to remove all the files, then `Add Folder` to add `dist/App` as a directory.
-
-Now, configure the build settings to save the installer somewhere tangible. To do this, click `build` on the left panel (not the top) and click the `...` button after `Setup File`. Then you can name and locate the file.
-
-Then, hit the `build` button at the top. This will create the new installer `.exe` file.
+If you run into any bugs that need to be fixed in the code, you will have to fix them and then start over at the Pyinstaller section.
 
 ## To Install
-To install the version I have here, just run the file `TelosAirQTPyFlashUtilInstaller.exe`.
-
-If you follow the section `To Build` above, you can run that `.exe` file as well.
+Either follow the `To Build` section and create an installer for your OS/architecture, or click on `Releases` to the right, sometimes at the top, of this page. Then find the newest version for your OS/architecture and click on it. Then you can click on the `.exe` file and it will download it to your computer. That link is also good for sharing with a client.
 
 ## To Run
-Just search for the app in Windows and run it.
+
+### As a Python Module
+
+Open a terminal/PowerShell in the main folder and run it with `python3`:
+
+```bash
+python3 -m TelosAirSAMDBoardFlashGUI
+```
+
+### As a Compiled Python Program
+
+Build with `Pyinstaller` (see `To Build`) and navigate to `./dist/App/`. The compiled `.exe` or `.bin` should be in that folder as `TelosAirQTPyFlashUtil.exe` or whatever the extension for your OS. Double click it or call it from a terminal to run.
+
+### As a Windows Application
+
+After installing with the installer downloaded in the `Releases` section, or created by `InstallForge` in the `To Build` section, you can click the Windows button or press it on the keyboard and type in `TelosAirQTPyFlashUtil` and run it. You may also right-click it when you find it to pin it to the taskbar.
