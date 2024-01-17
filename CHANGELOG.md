@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.0.0
+Added:
+* Application Icon
+
+Removed:
+* Testing code sketch
 ### v0.1.2
 Modified:
 * Fixed issue with error re-raising where sometimes an arg was int trying to concat to str
